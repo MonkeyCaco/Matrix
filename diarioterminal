@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <!-- Garante a responsividade em celulares -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Diário de Desintegração</title>
+    
+    <!-- Fonte pixelada estilo terminal -->
+    <link href="https://fonts.googleapis.com/css2?family=VT323&display=swap" rel="stylesheet">
+    
+    <style>
+        /* Variáveis de cor para o azul neon */
+        :root {
+            --bg-color: #050505;
+            --neon-blue: #00f3ff;
+            --neon-glow: 0 0 5px var(--neon-blue), 0 0 10px var(--neon-blue);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--neon-blue);
+            font-family: 'VT323', monospace;
+            height: 100vh;
+            width: 100vw;
+            overflow: hidden; /* Evita rolagem indesejada */
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Efeito de brilho neon nos textos */
+        .neon-text {
+            text-shadow: var(--neon-glow);
+        }
+
+        /* Estilo base para os botões do terminal */
+        .btn-terminal {
+            background: transparent;
+            color: var(--neon-blue);
+            border: 2px solid var(--neon-blue);
+            padding: 15px 30px;
+            font-size: 2rem;
+            font-family: 'VT323', monospace;
+            cursor: pointer;
+            text-transform: uppercase;
+            box-shadow: 0 0 10px inset var(--neon-blue), 0 0 10px var(--neon-blue);
+            transition: all 0.2s ease-in-out;
+            text-shadow: var(--neon-glow);
+        }
+
+        .btn-terminal:hover, .btn-terminal:active {
+            background: var(--neon-blue);
+            color: var(--bg-color);
+            box-shadow: 0 0 20px inset var(--neon-blue), 0 0 20px var(--neon-blue);
+            text-shadow: none;
+        }
+
+        /* Telas (Views) */
+        #home-view, #write-view {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            position: absolute;
+            top: 0;
+            left: 0;
+            z-index: 10;
+        }
+
+        /* Tela de escrita fica oculta inicialmente */
+        #write-view {
+            display: none;
+            padding: 20px;
+            justify-content: space-between;
+        }
+
+        /* Área de texto onde você vai desabafar */
+        textarea {
+            width: 100%;
+            flex-grow: 1;
+            background: transparent;
+            color: var(--neon-blue);
+            border: none;
+            outline: none;
+            resize: none;
+            font-size: 1.5rem;
+            font-family: 'VT323', monospace;
+            line-height: 1.5;
+            text-shadow: var(--neon-glow);
+            padding-bottom: 20px;
+        }
+
+        /* Customiza a barra de rolagem para manter o estilo */
+        textarea::-webkit-scrollbar {
+            width: 8px;
+        }
+        textarea::-webkit-scrollbar-track {
+            background: #000;
+        }
+        textarea::-webkit-scrollbar-thumb {
+            background: var(--neon-blue);
+            border-radius: 4px;
+        }
+
+        /* Canvas para a animação da Matrix */
+        #matrix-canvas {
+            display: none;
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 20;
+            background: black;
+        }
+        
+        .footer-action {
+            width: 100%;
+            display: flex;
+            justify-content: center;
+            padding-bottom: 10px;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- TELA 1: Homepage -->
+    <div id="home-view">
+        <button class="btn-terminal" onclick="openTerminal()">Escrever</button>
+    </div>
+
+    <!-- TELA 2: Editor de Desabafos -->
+    <div id="write-view">
+        <textarea id="diary-input" placeholder="> Aguardando entrada do sistema..." spellcheck="false"></textarea>
+        <div class="footer-action">
+            <button class="btn-terminal" onclick="disintegrate()">Desintegrar</button>
+        </div>
+    </div>
+
+    <!-- TELA 3: Efeito Matrix -->
+    <canvas id="matrix-canvas"></canvas>
+
+    <script>
+        // Referências aos elementos do DOM
+        const homeView = document.getElementById('home-view');
+        const writeView = document.getElementById('write-view');
+        const diaryInput = document.getElementById('diary-input');
+        const canvas = document.getElementById('matrix-canvas');
+        const ctx = canvas.getContext('2d');
+
+        // Abre a tela de escrita e foca no input
+        function openTerminal() {
+            homeView.style.display = 'none';
+            writeView.style.display = 'flex';
+            diaryInput.value = ''; // Limpa o texto anterior
+            diaryInput.focus();
+        }
+
+        // Lógica de desintegração (Efeito Matrix)
+        function disintegrate() {
+            const rawText = diaryInput.value.trim();
+            
+            // Esconde a tela de escrita e mostra o canvas
+            writeView.style.display = 'none';
+            canvas.style.display = 'block';
+
+            // Ajusta o tamanho do canvas para preencher a tela inteira
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+
+            // Configurações da chuva Matrix
+            const fontSize = 20;
+            const columns = canvas.width / fontSize;
+            const drops = [];
+            
+            // Inicializa as gotas no topo da tela (posição Y = 1)
+            for (let i = 0; i < columns; i++) {
+                drops[i] = 1;
+            }
+
+            // Transforma o texto do usuário nos caracteres que vão cair.
+            // Se estiver vazio, usa caracteres binários padrão.
+            let characters = rawText.replace(/\s/g, '').split('');
+            if (characters.length === 0) {
+                characters = "01".split('');
+            }
+
+            let animationFrameId;
+            let frameCount = 0;
+            const durationFrames = 180; // Aproximadamente 3 segundos a 60fps
+
+            // Função principal de desenho do loop da Matrix
+            function drawMatrix() {
+                // Desenha um retângulo preto com opacidade 0.1 sobre a tela
+                // Isso cria o efeito de "rastro" apagando os caracteres antigos aos poucos
+                ctx.fillStyle = 'rgba(0, 0, 0, 0.1)';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+                // Configura a fonte azul neon
+                ctx.fillStyle = '#00f3ff';
+                ctx.font = fontSize + 'px VT323';
+
+                // Percorre cada coluna desenhando a chuva
+                for (let i = 0; i < drops.length; i++) {
+                    // Pega um caractere aleatório do texto do usuário
+                    const text = characters[Math.floor(Math.random() * characters.length)];
+                    
+                    // Desenha o caractere na posição (X, Y)
+                    ctx.fillText(text, i * fontSize, drops[i] * fontSize);
+
+                    // Se a gota chegou no fim da tela e passa no teste de probabilidade, volta pro topo
+                    if (drops[i] * fontSize > canvas.height && Math.random() > 0.975) {
+                        drops[i] = 0;
+                    }
+                    
+                    // Move a gota para baixo
+                    drops[i]++;
+                }
+
+                frameCount++;
+
+                // Continua a animação ou encerra após o tempo limite
+                if (frameCount < durationFrames) {
+                    animationFrameId = requestAnimationFrame(drawMatrix);
+                } else {
+                    cancelAnimationFrame(animationFrameId);
+                    finishDisintegration();
+                }
+            }
+
+            // Inicia o loop
+            drawMatrix();
+        }
+
+        // Limpa a tela e volta para a página inicial
+        function finishDisintegration() {
+            // Efeito de fade out rápido (limpa o canvas com preto)
+            ctx.fillStyle = 'black';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            setTimeout(() => {
+                canvas.style.display = 'none';
+                homeView.style.display = 'flex';
+            }, 300);
+        }
+
+        // Recalcula o tamanho do canvas se a tela for redimensionada no meio da animação
+        window.addEventListener('resize', () => {
+            if (canvas.style.display === 'block') {
+                canvas.width = window.innerWidth;
+                canvas.height = window.innerHeight;
+            }
+        });
+    </script>
+</body>
+</html>
